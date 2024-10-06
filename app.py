@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import pickle
 import numpy as np
 from urllib.parse import urlparse, parse_qs
-import seaborn as sns
 from wordcloud import WordCloud
 import re
 import nltk
@@ -25,34 +24,31 @@ import json
 
 app = Flask(__name__)
 
-translator = Translator()
-
 DEVELOPER_KEY = "AIzaSyB_dxNMTBGn3iPER2YF_HItaV-WS_I0WVE"
+max_seq_length = 100 # Parameters for padding
 
 if not os.path.exists('static/images'):
     os.makedirs('static/images')
 
 # Load your LSTM model
 model_lstm = load_model('lstm_sentiment_model.h5')
-
-# Load tokenizer (make sure you have a tokenizer saved in your project)
 with open('tokenizer.pickle', 'rb') as handle:
     tokenizer = pickle.load(handle)
 
-# Parameters for padding
-max_seq_length = 100  # Update with your actual sequence length used in training
+#utilities
+translator = Translator()
+lemmatizer = WordNetLemmatizer()
+stop_words = set(stopwords.words('english'))
 
 # Route for the homepage
 @app.route('/')
 def home():
     return render_template('index.html')
 
-# Route for the About page
 @app.route('/about')
 def about():
     return render_template('about.html')
 
-# Route for processing comment submission and predicting sentiment
 @app.route('/submit_comment', methods=['POST'])
 def submit_comment():
     comment = request.form.get('comment')
@@ -80,6 +76,91 @@ def submit_comment():
     # Pass sentiment prediction and score to comment.html
     return render_template('comment.html', sentiment_label=sentiment_label, sentiment_score=lstm_pred[0][sentiment_score])
 
+@app.route('/submit_url', methods=['POST'])
+def submit_url():
+    youtube_url = request.form.get('youtube_url')
+    num_comments = int(request.form.get('num_comments', 100))
+    min_comment_length = int(request.form.get('min_comment_length',10))
+
+    if not youtube_url:
+        return "No URL provided", 400
+
+    api_service_name = "youtube"
+    api_version = "v3"
+        
+    youtube = googleapiclient.discovery.build(api_service_name, api_version, developerKey=DEVELOPER_KEY)
+
+    video_id = extract_video_id(youtube_url)
+    video_title = fetch_video_details(youtube, video_id)
+    df = fetch_comments(youtube, video_id, max_comments=num_comments, min_comment_length=min_comment_length)
+
+    # Perform sentiment analysis
+    df = perform_sentiment_analysis(df, tokenizer, model_lstm, max_seq_length)
+    
+    # Calculate overall sentiment
+    sentiment, sentiment_counts = calculate_overall_sentiment(df)
+
+    # Prepare top positive and negative comments
+    top_positive_comments, top_negative_comments = prepare_top_comments(df)
+
+    create_plots(df)
+
+    data_to_save = {
+        'sentiment': sentiment,
+        'video_title': video_title,
+        'video_id': video_id,
+        'top_positive_comments': top_positive_comments,
+        'top_negative_comments': top_negative_comments
+    }
+    with open('static/last_fetched/last_viewed_data_new.json', 'w') as f:
+        json.dump(data_to_save, f)
+
+    return render_template('youtube.html', sentiment=sentiment, 
+                        like_dist_image='/static/images/like_distribution.png',
+                        comment_corr_image='/static/images/comment_length_vs_likes.png',
+                        comment_activity_image='/static/images/comment_activity_over_time.png',
+                        top_authors_image='/static/images/top_authors.png',
+                        comment_length_dist_image='/static/images/comment_length_distribution.png',
+                        comment_activity_by_hour_image='/static/images/comment_activity_by_hour.png',
+                        wordcloud_image='/static/images/wordcloud.png',
+                        comment_activity_heatmap_image='/static/images/comment_activity_heatmap.png',
+                        likes_over_time_image='/static/images/likes_over_time.png',
+                        sentiment_dist_image='/static/images/sentiment_distribution.png',
+                        video_title=video_title,
+                        video_id=video_id,
+                        top_positive_comments=top_positive_comments,
+                        top_negative_comments=top_negative_comments)
+
+@app.route('/last_fetched', methods=['POST'])
+def last_fetch_fucn():
+    try:
+        with open('static/last_fetched/last_viewed_data_old.json', 'r') as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        return "No data available", 400
+
+    return render_template('youtube.html', sentiment=data['sentiment'], 
+                           like_dist_image='/static/last_fetched/like_distribution.png',
+                            comment_corr_image='/static/last_fetched/comment_length_vs_likes.png',
+                            comment_activity_image='/static/last_fetched/comment_activity_over_time.png',
+                            top_authors_image='/static/last_fetched/top_authors.png',
+                            comment_length_dist_image='/static/last_fetched/comment_length_distribution.png',
+                            comment_activity_by_hour_image='/static/last_fetched/comment_activity_by_hour.png',
+                            wordcloud_image='/static/last_fetched/wordcloud.png',
+                            comment_activity_heatmap_image='/static/last_fetched/comment_activity_heatmap.png',
+                            likes_over_time_image='/static/last_fetched/likes_over_time.png',
+                            sentiment_dist_image='/static/last_fetched/sentiment_distribution.png',
+                           video_title=data['video_title'],
+                           video_id=data['video_id'],
+                           top_positive_comments=data['top_positive_comments'],
+                           top_negative_comments=data['top_negative_comments']
+                        )
+
+@app.route('/how_it_works')
+def how_it_works():
+    return render_template('how_it_works.html')
+
+#Helper functions
 def fetch_video_details(youtube, video_id):
     video_request = youtube.videos().list(
         part="snippet",
@@ -213,16 +294,6 @@ def create_plots(df):
     plt.savefig('static/images/wordcloud.png')
     plt.close()
 
-
-# Ensure you have the necessary NLTK data files
-nltk.download('punkt')
-nltk.download('stopwords')
-nltk.download('wordnet')
-
-# Initialize lemmatizer and stopwords
-lemmatizer = WordNetLemmatizer()
-stop_words = set(stopwords.words('english'))
-
 # Function to clean and preprocess comments
 def clean_and_preprocess_comments(comment):
 
@@ -288,62 +359,6 @@ def prepare_top_comments(df):
     top_negative_comments_list = top_negative_comments[['text', 'like_count']].to_dict(orient='records')
 
     return top_positive_comments_list, top_negative_comments_list
-
-# Route handler
-@app.route('/submit_url', methods=['POST'])
-def submit_url():
-    youtube_url = request.form.get('youtube_url')
-    num_comments = int(request.form.get('num_comments', 100))
-    min_comment_length = int(request.form.get('min_comment_length',10))
-
-    if not youtube_url:
-        return "No URL provided", 400
-
-    api_service_name = "youtube"
-    api_version = "v3"
-        
-    youtube = googleapiclient.discovery.build(api_service_name, api_version, developerKey=DEVELOPER_KEY)
-
-    video_id = extract_video_id(youtube_url)
-    video_title = fetch_video_details(youtube, video_id)
-    df = fetch_comments(youtube, video_id, max_comments=num_comments, min_comment_length=min_comment_length)
-
-    # Perform sentiment analysis
-    df = perform_sentiment_analysis(df, tokenizer, model_lstm, max_seq_length)
-    
-    # Calculate overall sentiment
-    sentiment, sentiment_counts = calculate_overall_sentiment(df)
-
-    # Prepare top positive and negative comments
-    top_positive_comments, top_negative_comments = prepare_top_comments(df)
-
-    create_plots(df)
-
-    data_to_save = {
-        'sentiment': sentiment,
-        'video_title': video_title,
-        'video_id': video_id,
-        'top_positive_comments': top_positive_comments,
-        'top_negative_comments': top_negative_comments
-    }
-    with open('static/last_fetched/last_viewed_data_new.json', 'w') as f:
-        json.dump(data_to_save, f)
-
-    return render_template('youtube.html', sentiment=sentiment, 
-                        like_dist_image='/static/images/like_distribution.png',
-                        comment_corr_image='/static/images/comment_length_vs_likes.png',
-                        comment_activity_image='/static/images/comment_activity_over_time.png',
-                        top_authors_image='/static/images/top_authors.png',
-                        comment_length_dist_image='/static/images/comment_length_distribution.png',
-                        comment_activity_by_hour_image='/static/images/comment_activity_by_hour.png',
-                        wordcloud_image='/static/images/wordcloud.png',
-                        comment_activity_heatmap_image='/static/images/comment_activity_heatmap.png',
-                        likes_over_time_image='/static/images/likes_over_time.png',
-                        sentiment_dist_image='/static/images/sentiment_distribution.png',
-                        video_title=video_title,
-                        video_id=video_id,
-                        top_positive_comments=top_positive_comments,
-                        top_negative_comments=top_negative_comments)
                            
 def extract_video_id(url):
     # Parse the URL into components
@@ -361,34 +376,9 @@ def extract_video_id(url):
     
     return None
 
-@app.route('/last_fetched', methods=['POST'])
-def last_fetch_fucn():
-    try:
-        with open('static/last_fetched/last_viewed_data_old.json', 'r') as f:
-            data = json.load(f)
-    except FileNotFoundError:
-        return "No data available", 400
-
-    return render_template('youtube.html', sentiment=data['sentiment'], 
-                           like_dist_image='/static/last_fetched/like_distribution.png',
-                            comment_corr_image='/static/last_fetched/comment_length_vs_likes.png',
-                            comment_activity_image='/static/last_fetched/comment_activity_over_time.png',
-                            top_authors_image='/static/last_fetched/top_authors.png',
-                            comment_length_dist_image='/static/last_fetched/comment_length_distribution.png',
-                            comment_activity_by_hour_image='/static/last_fetched/comment_activity_by_hour.png',
-                            wordcloud_image='/static/last_fetched/wordcloud.png',
-                            comment_activity_heatmap_image='/static/last_fetched/comment_activity_heatmap.png',
-                            likes_over_time_image='/static/last_fetched/likes_over_time.png',
-                            sentiment_dist_image='/static/last_fetched/sentiment_distribution.png',
-                           video_title=data['video_title'],
-                           video_id=data['video_id'],
-                           top_positive_comments=data['top_positive_comments'],
-                           top_negative_comments=data['top_negative_comments']
-                        )
-
-@app.route('/how_it_works')
-def how_it_works():
-    return render_template('how_it_works.html')
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
 
 if __name__ == '__main__':
     app.run(debug=True)
