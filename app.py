@@ -178,6 +178,31 @@ def create_plots(df):
     fig.update_layout(xaxis_title='Hour of the Day', yaxis_title='Number of Comments')
     fig.write_image('static/images/comment_activity_by_hour.png')
 
+    #Heatmap of Comment Activity by Day and Hour
+    df['published_at'] = pd.to_datetime(df['published_at'])
+    df['day_of_week'] = df['published_at'].dt.day_name()
+    df['hour'] = df['published_at'].dt.hour
+    heatmap_data = df.groupby(['day_of_week', 'hour']).size().reset_index(name='count')
+    fig = px.density_heatmap(heatmap_data, x='hour', y='day_of_week', z='count', title='Comment Activity by Day and Hour')
+    fig.update_layout(xaxis_title='Hour of the Day', yaxis_title='Day of the Week')
+    fig.write_image('static/images/comment_activity_heatmap.png')
+
+    #Time Series Analysis of Likes
+    df['published_at'] = pd.to_datetime(df['published_at'])
+    likes_over_time = df.groupby(df['published_at'].dt.date)['like_count'].sum().reset_index()
+    fig = px.line(likes_over_time, x='published_at', y='like_count', title='Likes Over Time')
+    fig.update_layout(xaxis_title='Date', yaxis_title='Total Likes')
+    fig.write_image('static/images/likes_over_time.png')
+
+    #Pie Chart of Sentiment Distribution
+    sentiment_counts = df['sentiment'].value_counts().reset_index()
+    sentiment_counts.columns = ['sentiment', 'count']
+    sentiment_labels = {0: 'Negative', 1: 'Neutral', 2: 'Positive'}
+    sentiment_counts['sentiment'] = sentiment_counts['sentiment'].map(sentiment_labels)
+    fig = px.pie(sentiment_counts, values='count', names='sentiment', title='Sentiment Distribution of Comments')
+    fig.update_traces(textposition='inside', textinfo='percent+label')
+    fig.write_image('static/images/sentiment_distribution.png')
+
     # Word cloud
     text = ' '.join(df['text'].tolist())
     wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
@@ -283,8 +308,6 @@ def submit_url():
     video_title = fetch_video_details(youtube, video_id)
     df = fetch_comments(youtube, video_id, max_comments=num_comments, min_comment_length=min_comment_length)
 
-    create_plots(df)
-
     # Perform sentiment analysis
     df = perform_sentiment_analysis(df, tokenizer, model_lstm, max_seq_length)
     
@@ -294,12 +317,7 @@ def submit_url():
     # Prepare top positive and negative comments
     top_positive_comments, top_negative_comments = prepare_top_comments(df)
 
-    # Create a pie chart for sentiment distribution
-    plt.figure(figsize=(8, 8))
-    plt.pie(sentiment_counts.values, labels=['Negative', 'Neutral', 'Positive'], autopct='%1.1f%%')
-    plt.title('Sentiment Distribution of Comments')
-    plt.savefig('static/images/sentiment_distribution.png')
-    plt.close()
+    create_plots(df)
 
     data_to_save = {
         'sentiment': sentiment,
@@ -312,18 +330,20 @@ def submit_url():
         json.dump(data_to_save, f)
 
     return render_template('youtube.html', sentiment=sentiment, 
-                           like_dist_image='/static/images/like_distribution.png',
-                           comment_corr_image='/static/images/comment_length_vs_likes.png',
-                           sentiment_dist_image='/static/images/sentiment_distribution.png',
-                           comment_activity_image='/static/images/comment_activity_over_time.png',
-                           top_authors_image='/static/images/top_authors.png',
-                           comment_length_dist_image='/static/images/comment_length_distribution.png',
-                           comment_activity_by_hour_image='/static/images/comment_activity_by_hour.png',
-                           wordcloud_image='/static/images/wordcloud.png',
-                           video_title=video_title,
-                           video_id=video_id,
-                           top_positive_comments=top_positive_comments,
-                           top_negative_comments=top_negative_comments)
+                        like_dist_image='/static/images/like_distribution.png',
+                        comment_corr_image='/static/images/comment_length_vs_likes.png',
+                        comment_activity_image='/static/images/comment_activity_over_time.png',
+                        top_authors_image='/static/images/top_authors.png',
+                        comment_length_dist_image='/static/images/comment_length_distribution.png',
+                        comment_activity_by_hour_image='/static/images/comment_activity_by_hour.png',
+                        wordcloud_image='/static/images/wordcloud.png',
+                        comment_activity_heatmap_image='/static/images/comment_activity_heatmap.png',
+                        likes_over_time_image='/static/images/likes_over_time.png',
+                        sentiment_dist_image='/static/images/sentiment_distribution.png',
+                        video_title=video_title,
+                        video_id=video_id,
+                        top_positive_comments=top_positive_comments,
+                        top_negative_comments=top_negative_comments)
                            
 def extract_video_id(url):
     # Parse the URL into components
@@ -351,13 +371,15 @@ def last_fetch_fucn():
 
     return render_template('youtube.html', sentiment=data['sentiment'], 
                            like_dist_image='/static/last_fetched/like_distribution.png',
-                           comment_corr_image='/static/last_fetched/comment_length_vs_likes.png',
-                           sentiment_dist_image='/static/last_fetched/sentiment_distribution.png',
-                           comment_activity_image='/static/last_fetched/comment_activity_over_time.png',
-                           top_authors_image='/static/last_fetched/top_authors.png',
-                           comment_length_dist_image='/static/last_fetched/comment_length_distribution.png',
-                           comment_activity_by_hour_image='/static/last_fetched/comment_activity_by_hour.png',
-                           wordcloud_image='/static/last_fetched/wordcloud.png',
+                            comment_corr_image='/static/last_fetched/comment_length_vs_likes.png',
+                            comment_activity_image='/static/last_fetched/comment_activity_over_time.png',
+                            top_authors_image='/static/last_fetched/top_authors.png',
+                            comment_length_dist_image='/static/last_fetched/comment_length_distribution.png',
+                            comment_activity_by_hour_image='/static/last_fetched/comment_activity_by_hour.png',
+                            wordcloud_image='/static/last_fetched/wordcloud.png',
+                            comment_activity_heatmap_image='/static/last_fetched/comment_activity_heatmap.png',
+                            likes_over_time_image='/static/last_fetched/likes_over_time.png',
+                            sentiment_dist_image='/static/last_fetched/sentiment_distribution.png',
                            video_title=data['video_title'],
                            video_id=data['video_id'],
                            top_positive_comments=data['top_positive_comments'],
