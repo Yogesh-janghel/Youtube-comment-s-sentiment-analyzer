@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Comment Sentiment Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body class="bg-black text-white">
+    <header class="bg-gray-800 p-4 flex justify-between items-center">
+        <div class="flex items-center">
+            <i class="fas fa-chart-line text-white text-2xl mr-2"></i>
+            <span class="text-white text-xl font-semibold">YouTubeCommentSentiment</span>
+        </div>
+        <nav>
+            <ul class="flex space-x-4">
+                <li><a href="/" class="text-white">Home</a></li>
+                <li><a href="/about" class="text-white">About</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="flex flex-col items-center justify-center min-h-screen">
+        <h1 class="text-4xl font-bold mb-2">YouTube Comment Sentiment Analysis</h1>
+        <p class="text-lg mb-8">Analyze the sentiment of YouTube comments</p>
+
+        <div class="w-full max-w-md">
+            <!-- Comment Form -->
+            <form action="/submit_comment" method="POST">
+                <div class="mb-4">
+                    <input type="text" name="comment" placeholder="Enter a comment for sentiment analysis" class="w-full p-4 mb-2 bg-gray-700 text-white rounded-full">
+                    <button type="submit" class="w-full p-4 bg-red-500 text-white rounded-full">Submit Comment</button>
+                </div>
+            </form>
+
+            <div class="w-full max-w-md">
+                <!-- YouTube URL Form -->
+                <form action="/submit_url" method="POST" class="w-full">
+                    <input type="text" name="youtube_url" placeholder="Paste YouTube video URL" class="w-full p-4 mb-2 bg-gray-700 text-white rounded-full">
+                    <button type="submit" class="w-full p-4 bg-red-500 text-white rounded-full">Submit URL</button>
+                </form>
+            
+                <!-- Last fetch result -->
+                <form action="/last_fetched" method="POST" class="w-full mt-4">
+                    <button type="submit" class="w-full p-4 bg-red-500 text-white rounded-full">Last Fetched</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Loading Screen -->
+        <div id="loadingScreen" class="hidden fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center">
+            <img src="/static/images/spinner.svg" alt="Loading..." class="w-16 h-16">
+            <p class="text-white text-xl ml-4">Loading, please wait...</p>
+        </div>
+
+        <script>
+            // Show the loading screen when the form is submitted
+            const urlForm = document.querySelector('form[action="/submit_url"]');
+            urlForm.addEventListener('submit', function() {
+                document.getElementById('loadingScreen').classList.remove('hidden');
+            });
+        </script>
+
+    </main>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube URL Sentiment Result</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white">
+    <header class="bg-gray-800 p-4 flex justify-between items-center">
+        <div class="flex items-center">
+            <i class="fas fa-chart-line text-white text-2xl mr-2"></i>
+            <span class="text-white text-xl font-semibold">YouTubeCommentSentiment</span>
+        </div>
+        <nav>
+            <ul class="flex space-x-4">
+                <li><a href="/" class="text-white hover:text-gray-300">Home</a></li>
+                <li><a href="/about" class="text-white hover:text-gray-300">About</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold mb-8 text-center">YouTube Video Sentiment Analysis</h1>
+        
+        <div class="bg-gray-800 rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Overall Sentiment</h2>
+            <p class="text-3xl font-bold text-center 
+                {{ 'text-green-500' if sentiment == 'Positive' else 'text-yellow-500' if sentiment == 'Neutral' else 'text-red-500' }}">
+                {{ sentiment }}
+            </p>
+        </div>
+
+         <!-- Display video title and link -->
+         <div class="bg-gray-800 rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Video Title</h2>
+
+            <p class="text-xl font-bold text-center">{{ video_title }}</p>
+            <div class="w-full max-w-md mx-auto mt-4">
+                <iframe 
+                    width="100%" 
+                    height="315" 
+                    src="https://www.youtube.com/embed/{{video_id}}" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen>
+                </iframe>
+            </div>
+            
+
+        </div>
+        
+        <!-- Display graphs -->
+        <div class="mt-8">
+            <h2 class="text-xl font-semibold mb-4">Distribution of Comment Likes</h2>
+            <img src="{{ like_dist_image }}" alt="Distribution of Likes" class="w-full max-w-md mb-8">
+            
+            <h2 class="text-xl font-semibold mb-4">Correlation Between Comment Length and Likes</h2>
+            <img src="{{ comment_corr_image }}" alt="Comment Length vs Likes" class="w-full max-w-md mb-8">
+
+            <h2 class="text-xl font-semibold mb-4">Comment Activity Over Time</h2>
+            <img src="{{ comment_activity_image }}" alt="Comment Activity Over Time" class="w-full max-w-md mb-8">
+
+            <h2 class="text-xl font-semibold mb-4">Top 10 Most Active Authors</h2>
+            <img src="{{ top_authors_image }}" alt="Top 10 Most Active Authors" class="w-full max-w-md mb-8">
+
+            <h2 class="text-xl font-semibold mb-4">Distribution of Comment Lengths</h2>
+            <img src="{{ comment_length_dist_image }}" alt="Distribution of Comment Lengths" class="w-full max-w-md mb-8">
+
+            <h2 class="text-xl font-semibold mb-4">Comment Activity by Hour</h2>
+            <img src="{{ comment_activity_by_hour_image }}" alt="Comment Activity by Hour" class="w-full max-w-md mb-8">
+
+            <h2 class="text-xl font-semibold mb-4">Most Common Words in Comments</h2>
+            <img src="{{ wordcloud_image }}" alt="Most Common Words in Comments" class="w-full max-w-md mb-8">
+        </div>
+        <!-- Display top positive comments -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Top 5 Most Liked Positive Comments</h2>
+            <ul>
+                {% for comment in top_positive_comments %}
+                    <li class="mb-4">
+                        <p class="text-lg">{{ comment.text }}</p>
+                        <p class="text-sm text-gray-400">Likes: {{ comment.like_count }}</p>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Display top negative comments -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Top 5 Most Liked Negative Comments</h2>
+            <ul>
+                {% for comment in top_negative_comments %}
+                    <li class="mb-4">
+                        <p class="text-lg">{{ comment.text }}</p>
+                        <p class="text-sm text-gray-400">Likes: {{ comment.like_count }}</p>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </main>
+</body>
+</html>
