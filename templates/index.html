@@ -45,10 +45,10 @@
                     <input type="range" id="num_comments" name="num_comments" min="10" max="3000" value="100" class="w-full mb-4">
                     <span id="num_comments_value" class="text-white">100</span>
 
-                    <!-- Slider for maximum comment length -->
-                    <label for="max_comment_length" class="block text-white mb-2">Maximum Comment Length:</label>
-                    <input type="range" id="max_comment_length" name="max_comment_length" min="10" max="150" value="20" class="w-full mb-4">
-                    <span id="max_comment_length_value" class="text-white">20</span>
+                    <!-- Slider for minimum comment length -->
+                    <label for="min_comment_length" class="block text-white mb-2">Minimum Comment Length:</label>
+                    <input type="range" id="min_comment_length" name="min_comment_length" min="10" max="150" value="10" class="w-full mb-4">
+                    <span id="min_comment_length_value" class="text-white">10</span>
 
                     <button type="submit" class="w-full p-4 bg-red-500 text-white rounded-full">Submit URL</button>
                 </form>
@@ -79,10 +79,10 @@
                 numCommentsValue.textContent = this.value;
             };
 
-            const maxCommentLengthSlider = document.getElementById('max_comment_length');
-            const maxCommentLengthValue = document.getElementById('max_comment_length_value');
-            maxCommentLengthSlider.oninput = function() {
-                maxCommentLengthValue.textContent = this.value;
+            const minCommentLengthSlider = document.getElementById('min_comment_length');
+            const minCommentLengthValue = document.getElementById('min_comment_length_value');
+            minCommentLengthSlider.oninput = function() {
+                minCommentLengthValue.textContent = this.value;
             };
         </script>
 

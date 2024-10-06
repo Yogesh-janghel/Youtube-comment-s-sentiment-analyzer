@@ -108,7 +108,7 @@ def detect_hinglish(comment):
         return False
     
 # Function to fetch comments
-def fetch_comments(youtube, video_id, max_comments=100, max_comment_length=150):
+def fetch_comments(youtube, video_id, max_comments=100, min_comment_length=10):
     comments = []
     next_page_token = None
     while True:
@@ -123,7 +123,7 @@ def fetch_comments(youtube, video_id, max_comments=100, max_comment_length=150):
         for item in response['items']:
             comment = item['snippet']['topLevelComment']['snippet']
             comment_text = comment['textDisplay']
-            if len(comment_text) <= max_comment_length:
+            if len(comment_text) >= min_comment_length:
                 comments.append([
                     comment['authorDisplayName'],
                     comment['publishedAt'],
@@ -269,7 +269,7 @@ def prepare_top_comments(df):
 def submit_url():
     youtube_url = request.form.get('youtube_url')
     num_comments = int(request.form.get('num_comments', 100))
-    max_comment_length = int(request.form.get('max_comment_length', 150))
+    min_comment_length = int(request.form.get('min_comment_length',10))
 
     if not youtube_url:
         return "No URL provided", 400
@@ -281,7 +281,7 @@ def submit_url():
 
     video_id = extract_video_id(youtube_url)
     video_title = fetch_video_details(youtube, video_id)
-    df = fetch_comments(youtube, video_id, max_comments=num_comments, max_comment_length=max_comment_length)
+    df = fetch_comments(youtube, video_id, max_comments=num_comments, min_comment_length=min_comment_length)
 
     create_plots(df)
 
