@@ -18,8 +18,12 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer
+from langdetect import detect
+from googletrans import Translator
 
 app = Flask(__name__)
+
+translator = Translator()
 
 sentiment_last="Positive"
 last_video_id="DLET_u31M4M"
@@ -86,8 +90,26 @@ def fetch_video_details(youtube, video_id):
     video_title = video_response['items'][0]['snippet']['title']
     return video_title
 
+def translate_to_english(comment):
+    try:
+        translation = translator.translate(comment, src='hi', dest='en')
+        return translation.text
+    except Exception as e:
+        print(f"Translation error: {e}")
+    return comment
+
+def detect_hinglish(comment):
+    try:
+        lang = detect(comment)
+        # Simple heuristic to identify Hinglish
+        if lang == 'en' and any(word in comment for word in ['hai', 'kya', 'nahi', 'kaise']):
+            return True
+        return False
+    except:
+        return False
+    
 # Function to fetch comments
-def fetch_comments(youtube, video_id, max_comments=100):
+def fetch_comments(youtube, video_id, max_comments=100, max_comment_length=150):
     comments = []
     next_page_token = None
     while True:
@@ -101,16 +123,16 @@ def fetch_comments(youtube, video_id, max_comments=100):
 
         for item in response['items']:
             comment = item['snippet']['topLevelComment']['snippet']
-            comments.append([
-                comment['authorDisplayName'],
-                comment['publishedAt'],
-                comment['updatedAt'],
-                comment['likeCount'],
-                comment['textDisplay'],
-                len(comment['textDisplay'])  # Add comment length for later analysis
-            ])
-            if len(comments) >= max_comments:
-                break
+            comment_text = comment['textDisplay']
+            if len(comment_text) <= max_comment_length:
+                comments.append([
+                    comment['authorDisplayName'],
+                    comment['publishedAt'],
+                    comment['updatedAt'],
+                    comment['likeCount'],
+                    comment_text,
+                    len(comment_text)  # Add comment length for later analysis
+                ])
 
         if len(comments) >= max_comments or not response.get('nextPageToken'):
             break
@@ -201,6 +223,9 @@ stop_words = set(stopwords.words('english'))
 
 # Function to clean and preprocess comments
 def clean_and_preprocess_comments(comment):
+    
+    if detect_hinglish(comment):
+           comment = translate_to_english(comment)
     # Convert to lowercase
     comment = comment.lower()
     # Remove URLs
@@ -266,6 +291,9 @@ def prepare_top_comments(df):
 @app.route('/submit_url', methods=['POST'])
 def submit_url():
     youtube_url = request.form.get('youtube_url')
+    num_comments = int(request.form.get('num_comments', 100))
+    max_comment_length = int(request.form.get('max_comment_length', 150))
+
     if not youtube_url:
         return "No URL provided", 400
 
@@ -276,7 +304,7 @@ def submit_url():
 
     video_id = extract_video_id(youtube_url)
     video_title = fetch_video_details(youtube, video_id)
-    df = fetch_comments(youtube, video_id, max_comments=100)
+    df = fetch_comments(youtube, video_id, max_comments=num_comments, max_comment_length=max_comment_length)
 
     create_plots(df)
 
@@ -340,7 +368,9 @@ def last_fetch_fucn():
                            video_title=last_title,
                            video_id=last_video_id)
 
-
+@app.route('/how_it_works')
+def how_it_works():
+    return render_template('how_it_works.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

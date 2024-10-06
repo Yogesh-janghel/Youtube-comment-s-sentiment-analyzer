@@ -16,6 +16,7 @@
         <nav>
             <ul class="flex space-x-4">
                 <li><a href="/" class="text-white">Home</a></li>
+                <li><a href="/how_it_works" class="text-white">How It Works</a></li>
                 <li><a href="/about" class="text-white">About</a></li>
             </ul>
         </nav>
@@ -38,6 +39,17 @@
                 <!-- YouTube URL Form -->
                 <form action="/submit_url" method="POST" class="w-full">
                     <input type="text" name="youtube_url" placeholder="Paste YouTube video URL" class="w-full p-4 mb-2 bg-gray-700 text-white rounded-full">
+                    
+                    <!-- Slider for number of comments -->
+                    <label for="num_comments" class="block text-white mb-2">Number of Comments to Fetch:</label>
+                    <input type="range" id="num_comments" name="num_comments" min="10" max="3000" value="100" class="w-full mb-4">
+                    <span id="num_comments_value" class="text-white">100</span>
+
+                    <!-- Slider for maximum comment length -->
+                    <label for="max_comment_length" class="block text-white mb-2">Maximum Comment Length:</label>
+                    <input type="range" id="max_comment_length" name="max_comment_length" min="10" max="150" value="20" class="w-full mb-4">
+                    <span id="max_comment_length_value" class="text-white">20</span>
+
                     <button type="submit" class="w-full p-4 bg-red-500 text-white rounded-full">Submit URL</button>
                 </form>
             
@@ -60,6 +72,18 @@
             urlForm.addEventListener('submit', function() {
                 document.getElementById('loadingScreen').classList.remove('hidden');
             });
+            // Update slider values
+            const numCommentsSlider = document.getElementById('num_comments');
+            const numCommentsValue = document.getElementById('num_comments_value');
+            numCommentsSlider.oninput = function() {
+                numCommentsValue.textContent = this.value;
+            };
+
+            const maxCommentLengthSlider = document.getElementById('max_comment_length');
+            const maxCommentLengthValue = document.getElementById('max_comment_length_value');
+            maxCommentLengthSlider.oninput = function() {
+                maxCommentLengthValue.textContent = this.value;
+            };
         </script>
 
     </main>
