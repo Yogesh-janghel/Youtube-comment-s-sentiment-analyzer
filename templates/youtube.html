@@ -25,8 +25,7 @@
         
         <div class="bg-gray-800 rounded-lg p-6 mb-8">
             <h2 class="text-2xl font-semibold mb-4">Overall Sentiment</h2>
-            <p class="text-3xl font-bold text-center 
-                {{ 'text-green-500' if sentiment == 'Positive' else 'text-yellow-500' if sentiment == 'Neutral' else 'text-red-500' }}">
+            <p class="text-3xl font-bold text-center {% if sentiment == 'Positive' %}text-green-500{% elif sentiment == 'Neutral' %}text-yellow-500{% else %}text-red-500{% endif %}">
                 {{ sentiment }}
             </p>
         </div>

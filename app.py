@@ -20,6 +20,7 @@ from nltk.stem import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from langdetect import detect
 from googletrans import Translator
+import plotly.express as px
 
 app = Flask(__name__)
 
@@ -144,63 +145,40 @@ def fetch_comments(youtube, video_id, max_comments=100, max_comment_length=150):
 # Function to create and save various plots
 def create_plots(df):
     # Like distribution
-    plt.figure(figsize=(10, 6))
-    df['like_count'].hist(bins=30, color='blue', edgecolor='black')
-    plt.title('Distribution of Comment Likes')
-    plt.xlabel('Like Count')
-    plt.ylabel('Number of Comments')
-    plt.xlim(0, 2000)
-    plt.savefig('static/images/like_distribution.png')
-    plt.close()
+    fig = px.histogram(df, x='like_count', nbins=30, title='Distribution of Comment Likes')
+    fig.update_layout(xaxis_title='Like Count', yaxis_title='Number of Comments')
+    fig.write_image('static/images/like_distribution.png')
 
     # Comment length vs likes correlation
-    plt.figure(figsize=(10, 6))
-    plt.scatter(df['comment_length'], df['like_count'], alpha=0.5)
-    plt.title('Correlation Between Comment Length and Likes')
-    plt.xlabel('Comment Length')
-    plt.ylabel('Like Count')
-    plt.savefig('static/images/comment_length_vs_likes.png')
-    plt.close()
+    fig = px.scatter(df, x='comment_length', y='like_count', opacity=0.5, title='Correlation Between Comment Length and Likes')
+    fig.update_layout(xaxis_title='Comment Length', yaxis_title='Like Count')
+    fig.write_image('static/images/comment_length_vs_likes.png')
 
     # Comment activity over time
     df['published_at'] = pd.to_datetime(df['published_at'])
-    plt.figure(figsize=(12, 6))
-    df.set_index('published_at').resample('D').size().plot(title='Comment Activity Over Time')
-    plt.ylabel('Number of Comments')
-    plt.savefig('static/images/comment_activity_over_time.png')
-    plt.close()
+    comment_activity = df.set_index('published_at').resample('D').size().reset_index(name='count')
+    fig = px.line(comment_activity, x='published_at', y='count', title='Comment Activity Over Time')
+    fig.update_layout(xaxis_title='Date', yaxis_title='Number of Comments')
+    fig.write_image('static/images/comment_activity_over_time.png')
 
     # Top 10 most active authors
-    top_authors = df['author'].value_counts().head(10)
-    plt.figure(figsize=(12, 6))
-    top_authors.plot(kind='bar', color='green')
-    plt.title('Top 10 Most Active Authors')
-    plt.xlabel('Author')
-    plt.ylabel('Number of Comments')
-    plt.savefig('static/images/top_authors.png')
-    plt.close()
+    top_authors = df['author'].value_counts().head(10).reset_index()
+    top_authors.columns = ['author', 'count']
+    fig = px.bar(top_authors, x='author', y='count', title='Top 10 Most Active Authors')
+    fig.update_layout(xaxis_title='Author', yaxis_title='Number of Comments')
+    fig.write_image('static/images/top_authors.png')
 
     # Comment length distribution
-    plt.figure(figsize=(10, 6))
-    df['comment_length'].hist(bins=30, color='orange', edgecolor='black')
-    plt.title('Distribution of Comment Lengths')
-    plt.xlabel('Comment Length')
-    plt.ylabel('Number of Comments')
-    plt.xlim(0, 2500)
-    plt.savefig('static/images/comment_length_distribution.png')
-    plt.close()
+    fig = px.histogram(df, x='comment_length', nbins=30, title='Distribution of Comment Lengths')
+    fig.update_layout(xaxis_title='Comment Length', yaxis_title='Number of Comments')
+    fig.write_image('static/images/comment_length_distribution.png')
 
     # Comment activity by hour
     df['hour'] = df['published_at'].dt.hour
     comment_hours = df.groupby('hour').size().reset_index(name='count')
-    comment_hours_pivot = comment_hours.pivot_table(values='count', index='hour', aggfunc='sum')
-    plt.figure(figsize=(12, 6))
-    sns.heatmap(comment_hours_pivot, annot=True, fmt='d', cmap='Blues')
-    plt.title('Comment Activity by Hour')
-    plt.xlabel('Hour of the Day')
-    plt.ylabel('Number of Comments')
-    plt.savefig('static/images/comment_activity_by_hour.png')
-    plt.close()
+    fig = px.density_heatmap(comment_hours, x='hour', y='count', title='Comment Activity by Hour')
+    fig.update_layout(xaxis_title='Hour of the Day', yaxis_title='Number of Comments')
+    fig.write_image('static/images/comment_activity_by_hour.png')
 
     # Word cloud
     text = ' '.join(df['text'].tolist())
@@ -211,6 +189,7 @@ def create_plots(df):
     plt.title('Most Common Words in Comments')
     plt.savefig('static/images/wordcloud.png')
     plt.close()
+
 
 # Ensure you have the necessary NLTK data files
 nltk.download('punkt')
@@ -223,7 +202,7 @@ stop_words = set(stopwords.words('english'))
 
 # Function to clean and preprocess comments
 def clean_and_preprocess_comments(comment):
-    
+
     if detect_hinglish(comment):
            comment = translate_to_english(comment)
     # Convert to lowercase
