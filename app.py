@@ -21,16 +21,14 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from langdetect import detect
 from googletrans import Translator
 import plotly.express as px
+import json
 
 app = Flask(__name__)
 
 translator = Translator()
 
-sentiment_last="Positive"
-last_video_id="DLET_u31M4M"
-last_title="IT ENDS WITH US - Official Trailer (HD)"
-
 DEVELOPER_KEY = "AIzaSyB_dxNMTBGn3iPER2YF_HItaV-WS_I0WVE"
+
 if not os.path.exists('static/images'):
     os.makedirs('static/images')
 
@@ -303,6 +301,16 @@ def submit_url():
     plt.savefig('static/images/sentiment_distribution.png')
     plt.close()
 
+    data_to_save = {
+        'sentiment': sentiment,
+        'video_title': video_title,
+        'video_id': video_id,
+        'top_positive_comments': top_positive_comments,
+        'top_negative_comments': top_negative_comments
+    }
+    with open('static/last_fetched/last_viewed_data_new.json', 'w') as f:
+        json.dump(data_to_save, f)
+
     return render_template('youtube.html', sentiment=sentiment, 
                            like_dist_image='/static/images/like_distribution.png',
                            comment_corr_image='/static/images/comment_length_vs_likes.png',
@@ -335,17 +343,26 @@ def extract_video_id(url):
 
 @app.route('/last_fetched', methods=['POST'])
 def last_fetch_fucn():
-    return render_template('last_fetch.html', sentiment=sentiment_last, 
-                           like_dist_image='/static/images/like_distribution.png',
-                           comment_corr_image='/static/images/comment_length_vs_likes.png',
-                           sentiment_dist_image='/static/images/sentiment_distribution.png',
-                           comment_activity_image='/static/images/comment_activity_over_time.png',
-                           top_authors_image='/static/images/top_authors.png',
-                           comment_length_dist_image='/static/images/comment_length_distribution.png',
-                           comment_activity_by_hour_image='/static/images/comment_activity_by_hour.png',
-                           wordcloud_image='/static/images/wordcloud.png',
-                           video_title=last_title,
-                           video_id=last_video_id)
+    try:
+        with open('static/last_fetched/last_viewed_data_old.json', 'r') as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        return "No data available", 400
+
+    return render_template('youtube.html', sentiment=data['sentiment'], 
+                           like_dist_image='/static/last_fetched/like_distribution.png',
+                           comment_corr_image='/static/last_fetched/comment_length_vs_likes.png',
+                           sentiment_dist_image='/static/last_fetched/sentiment_distribution.png',
+                           comment_activity_image='/static/last_fetched/comment_activity_over_time.png',
+                           top_authors_image='/static/last_fetched/top_authors.png',
+                           comment_length_dist_image='/static/last_fetched/comment_length_distribution.png',
+                           comment_activity_by_hour_image='/static/last_fetched/comment_activity_by_hour.png',
+                           wordcloud_image='/static/last_fetched/wordcloud.png',
+                           video_title=data['video_title'],
+                           video_id=data['video_id'],
+                           top_positive_comments=data['top_positive_comments'],
+                           top_negative_comments=data['top_negative_comments']
+                        )
 
 @app.route('/how_it_works')
 def how_it_works():

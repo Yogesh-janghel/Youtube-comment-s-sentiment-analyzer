@@ -14,8 +14,9 @@
         </div>
         <nav>
             <ul class="flex space-x-4">
-                <li><a href="/" class="text-white hover:text-gray-300">Home</a></li>
-                <li><a href="/about" class="text-white hover:text-gray-300">About</a></li>
+                <li><a href="/" class="text-white">Home</a></li>
+                <li><a href="/how_it_works" class="text-white">How It Works</a></li>
+                <li><a href="/about" class="text-white">About</a></li>
             </ul>
         </nav>
     </header>
@@ -24,14 +25,13 @@
         
         <div class="bg-gray-800 rounded-lg p-6 mb-8">
             <h2 class="text-2xl font-semibold mb-4">Overall Sentiment</h2>
-            <p class="text-3xl font-bold text-center 
-                {{ 'text-green-500' if sentiment == 'Positive' else 'text-yellow-500' if sentiment == 'Neutral' else 'text-red-500' }}">
+            <p class="text-3xl font-bold text-center {% if sentiment == 'Positive' %}text-green-500{% elif sentiment == 'Neutral' %}text-yellow-500{% else %}text-red-500{% endif %}">
                 {{ sentiment }}
             </p>
         </div>
-        
+
          <!-- Display video title and link -->
-        <div class="bg-gray-800 rounded-lg p-6 mb-8">
+         <div class="bg-gray-800 rounded-lg p-6 mb-8">
             <h2 class="text-2xl font-semibold mb-4">Video Title</h2>
 
             <p class="text-xl font-bold text-center">{{ video_title }}</p>
@@ -48,6 +48,7 @@
             
 
         </div>
+        
         <!-- Display graphs -->
         <div class="mt-8">
             <h2 class="text-xl font-semibold mb-4">Distribution of Comment Likes</h2>
@@ -70,6 +71,31 @@
 
             <h2 class="text-xl font-semibold mb-4">Most Common Words in Comments</h2>
             <img src="{{ wordcloud_image }}" alt="Most Common Words in Comments" class="w-full max-w-md mb-8">
+        </div>
+        <!-- Display top positive comments -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Top 5 Most Liked Positive Comments</h2>
+            <ul>
+                {% for comment in top_positive_comments %}
+                    <li class="mb-4">
+                        <p class="text-lg">{{ comment.text }}</p>
+                        <p class="text-sm text-gray-400">Likes: {{ comment.like_count }}</p>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Display top negative comments -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Top 5 Most Liked Negative Comments</h2>
+            <ul>
+                {% for comment in top_negative_comments %}
+                    <li class="mb-4">
+                        <p class="text-lg">{{ comment.text }}</p>
+                        <p class="text-sm text-gray-400">Likes: {{ comment.like_count }}</p>
+                    </li>
+                {% endfor %}
+            </ul>
         </div>
     </main>
 </body>
